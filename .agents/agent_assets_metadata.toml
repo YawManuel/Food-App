@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "oIJKyjpA2PYHRs42rYK2H"
+uri = "file://artifacts/mobile/assets/images/icon.png"
+type = "image"
+title = "asap_icon"
