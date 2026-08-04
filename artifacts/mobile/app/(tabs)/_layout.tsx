@@ -1,4 +1,5 @@
 import { BlurView } from "expo-blur";
+import Constants from "expo-constants";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Tabs } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
@@ -12,6 +13,10 @@ import {
   View,
   useColorScheme,
 } from "react-native";
+
+// expo-router/unstable-native-tabs requires a custom native build and does not
+// work inside Expo Go. Detect Expo Go so we can fall back to the classic layout.
+const isExpoGo = Constants.appOwnership === "expo";
 
 import { useColors } from "@/hooks/useColors";
 import { useCart } from "@/context/CartContext";
@@ -144,7 +149,7 @@ function ClassicTabLayout() {
 }
 
 export default function TabLayout() {
-  if (isLiquidGlassAvailable()) {
+  if (!isExpoGo && isLiquidGlassAvailable()) {
     return <NativeTabLayout />;
   }
   return <ClassicTabLayout />;
