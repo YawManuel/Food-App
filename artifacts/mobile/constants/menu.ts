@@ -226,6 +226,11 @@ export const MENU_ITEMS: MenuItem[] = [
 ];
 
 export const IMAGE_MAP: Record<string, any> = {
-  // Food images are loaded here once generated.
-  // FoodCard shows a colorful branded placeholder when an image is absent.
+  jollof_rice: require("../assets/images/jollof_rice.jpg"),
+  waakye: require("../assets/images/waakye.jpg"),
+  light_soup: require("../assets/images/light_soup.jpg"),
+  fufu: require("../assets/images/fufu.jpg"),
+  grilled_tilapia: require("../assets/images/grilled_tilapia.jpg"),
+  kelewele: require("../assets/images/kelewele.jpg"),
+  sobolo: require("../assets/images/sobolo.jpg"),
 };
