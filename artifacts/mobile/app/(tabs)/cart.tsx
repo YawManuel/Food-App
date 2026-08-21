@@ -46,7 +46,7 @@ export default function CartScreen() {
     placeOrder(items, grandTotal, address.trim());
     clearCart();
     setPlacing(false);
-    router.push("/(tabs)/orders");
+    router.replace("/(tabs)/orders");
   };
 
   if (items.length === 0) {
