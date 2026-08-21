@@ -72,7 +72,7 @@ export default function CartScreen() {
           Add some delicious Ghanaian dishes!
         </Text>
         <Pressable
-          onPress={() => router.push("/(tabs)/")}
+          onPress={() => router.push("/(tabs)")}
           style={[styles.browseBtn, { backgroundColor: colors.primary }]}
         >
           <Text style={[styles.browseBtnText, { color: colors.primaryForeground }]}>

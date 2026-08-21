@@ -54,7 +54,7 @@ export default function OrdersScreen() {
             Order some amazing Ghanaian food!
           </Text>
           <Pressable
-            onPress={() => router.push("/(tabs)/")}
+            onPress={() => router.push("/(tabs)")}
             style={[styles.browseBtn, { backgroundColor: colors.primary }]}
           >
             <Text
