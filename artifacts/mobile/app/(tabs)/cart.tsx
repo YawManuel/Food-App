@@ -31,6 +31,7 @@ export default function CartScreen() {
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
+  const tabBarHeight = Platform.OS === "web" ? 84 : 56 + insets.bottom;
 
   const grandTotal = totalPrice + (items.length > 0 ? DELIVERY_FEE : 0);
 
@@ -93,7 +94,7 @@ export default function CartScreen() {
           styles.scroll,
           {
             paddingTop: topPad + 8,
-            paddingBottom: botPad + 100,
+            paddingBottom: tabBarHeight + 100,
           },
         ]}
         showsVerticalScrollIndicator={false}
@@ -177,7 +178,8 @@ export default function CartScreen() {
           {
             backgroundColor: colors.background,
             borderTopColor: colors.border,
-            paddingBottom: botPad + 16,
+            bottom: tabBarHeight,
+            paddingBottom: 12,
           },
         ]}
       >
