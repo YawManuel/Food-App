@@ -11,6 +11,7 @@ import {
 import { useColors } from "@/hooks/useColors";
 import { IMAGE_MAP, MenuItem } from "@/constants/menu";
 import { useCart } from "@/context/CartContext";
+import { formatCedis } from "@/utils/format";
 
 type Props = {
   item: MenuItem;
@@ -19,9 +20,8 @@ type Props = {
 
 export function FoodCard({ item, onPress }: Props) {
   const colors = useColors();
-  const { addItem, items } = useCart();
-  const cartEntry = items.find((c) => c.item.id === item.id);
-  const qty = cartEntry?.quantity ?? 0;
+  const { addItem, quantityOf } = useCart();
+  const qty = quantityOf(item.id);
   const img = IMAGE_MAP[item.imageName];
 
   const handleAdd = () => {
@@ -78,7 +78,7 @@ export function FoodCard({ item, onPress }: Props) {
         <View style={styles.footer}>
           <View>
             <Text style={[styles.price, { color: colors.primary }]}>
-              GH₵ {item.price}
+              {formatCedis(item.price)}
             </Text>
             <View style={styles.timeRow}>
               <MaterialIcons

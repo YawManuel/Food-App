@@ -1,0 +1,44 @@
+name: asap-eats
+
+services:
+  # Production-style container: static Expo web export on a tiny Node server.
+  #   docker compose up --build mobile   →   http://localhost:8081
+  mobile:
+    build:
+      context: .
+      dockerfile: artifacts/mobile/Dockerfile
+      target: runtime
+    image: asap-mobile:latest
+    container_name: asap-mobile
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: "8081"
+    restart: unless-stopped
+
+  # Metro dev server with hot reload. Sources are bind-mounted; node_modules
+  # stay in anonymous volumes so the container's Linux binaries aren't
+  # shadowed by whatever the host has installed.
+  #   docker compose --profile dev up --build mobile-dev
+  mobile-dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      dockerfile: artifacts/mobile/Dockerfile
+      target: dev
+    image: asap-mobile:dev
+    container_name: asap-mobile-dev
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./artifacts/mobile:/workspace/artifacts/mobile
+      - ./lib:/workspace/lib
+      - /workspace/node_modules
+      - /workspace/artifacts/mobile/node_modules
+      - /workspace/artifacts/mobile/.expo
+    environment:
+      # Metro's file watcher needs polling to see writes from the host bind mount.
+      CHOKIDAR_USEPOLLING: "1"
+      WATCHPACK_POLLING: "true"
+    stdin_open: true
+    tty: true

@@ -18,6 +18,10 @@ import { FoodCard } from "@/components/FoodCard";
 import { useColors } from "@/hooks/useColors";
 import { CATEGORIES, IMAGE_MAP, MENU_ITEMS } from "@/constants/menu";
 import { useCart } from "@/context/CartContext";
+import { STATUS_LABELS, useOrders } from "@/context/OrderContext";
+import { useUser } from "@/context/UserContext";
+import { FREE_DELIVERY_THRESHOLD } from "@/constants/pricing";
+import { formatCedis, formatEta } from "@/utils/format";
 
 export default function HomeScreen() {
   const colors = useColors();
@@ -25,14 +29,23 @@ export default function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [search, setSearch] = useState("");
   const { totalItems } = useCart();
+  const { activeOrder } = useOrders();
+  const { profile, defaultAddress } = useUser();
+
+  const firstName = profile.name.trim().split(" ")[0] || "there";
 
   const filteredItems = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
     return MENU_ITEMS.filter((item) => {
       const matchCat =
         selectedCategory === "all" || item.category === selectedCategory;
+      // Search descriptions too — "spicy" and "plantain" are how people
+      // actually look for kelewele.
       const matchSearch =
-        search.trim() === "" ||
-        item.name.toLowerCase().includes(search.toLowerCase());
+        query === "" ||
+        item.name.toLowerCase().includes(query) ||
+        item.description.toLowerCase().includes(query);
       return matchCat && matchSearch;
     });
   }, [selectedCategory, search]);
@@ -69,8 +82,11 @@ export default function HomeScreen() {
                   Delivering to
                 </Text>
               </View>
-              <Text style={[styles.location, { color: colors.foreground }]}>
-                Accra, Greater Accra
+              <Text
+                style={[styles.location, { color: colors.foreground }]}
+                numberOfLines={1}
+              >
+                {defaultAddress?.line ?? "Accra, Greater Accra"}
               </Text>
             </View>
             <Pressable
@@ -93,7 +109,7 @@ export default function HomeScreen() {
 
           {/* Greeting */}
           <Text style={[styles.greeting, { color: colors.foreground }]}>
-            What are you{"\n"}
+            Hi {firstName}, what are you{"\n"}
             <Text style={{ color: colors.primary }}>craving today?</Text>
           </Text>
 
@@ -119,21 +135,76 @@ export default function HomeScreen() {
             )}
           </View>
 
+          {/* Live order — only while something is actually in flight */}
+          {activeOrder && (
+            <Pressable
+              onPress={() => router.push(`/order/${activeOrder.id}`)}
+              accessibilityRole="button"
+              accessibilityLabel={`Track order ${activeOrder.code}`}
+              style={({ pressed }) => [
+                styles.activeOrder,
+                {
+                  backgroundColor: colors.accent + "18",
+                  borderColor: colors.accent + "45",
+                },
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <View
+                style={[styles.activeOrderIcon, { backgroundColor: colors.accent }]}
+              >
+                <Feather name="truck" size={17} color={colors.accentForeground} />
+              </View>
+              <View style={styles.activeOrderText}>
+                <Text
+                  style={[styles.activeOrderTitle, { color: colors.foreground }]}
+                  numberOfLines={1}
+                >
+                  {STATUS_LABELS[activeOrder.status]} · {activeOrder.code}
+                </Text>
+                <Text
+                  style={[
+                    styles.activeOrderSub,
+                    { color: colors.mutedForeground },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {formatEta(activeOrder.minutesRemaining)} · Tap to track
+                </Text>
+              </View>
+              <Feather
+                name="chevron-right"
+                size={18}
+                color={colors.mutedForeground}
+              />
+            </Pressable>
+          )}
+
           {/* Banner */}
           <View style={[styles.banner, { backgroundColor: colors.primary }]}>
             <View style={styles.bannerText}>
-              <Text style={styles.bannerTag}>LIMITED OFFER</Text>
+              <Text style={styles.bannerTag}>FREE DELIVERY</Text>
               <Text style={styles.bannerTitle}>
-                Free delivery{"\n"}on first order!
+                On orders over{"\n"}
+                {formatCedis(FREE_DELIVERY_THRESHOLD)}
               </Text>
               <Pressable
+                onPress={() => {
+                  setSelectedCategory("all");
+                  setSearch("");
+                }}
                 style={[
                   styles.bannerBtn,
                   { backgroundColor: colors.secondary },
                 ]}
               >
-                <Text style={[styles.bannerBtnText, { color: "#1A1A1A" }]}>
-                  Order Now
+                <Text
+                  style={[
+                    styles.bannerBtnText,
+                    { color: colors.secondaryForeground },
+                  ]}
+                >
+                  Browse All
                 </Text>
               </Pressable>
             </View>
@@ -269,6 +340,34 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontFamily: "Inter_400Regular",
+  },
+  activeOrder: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 18,
+  },
+  activeOrderIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  activeOrderText: {
+    flex: 1,
+  },
+  activeOrderTitle: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  activeOrderSub: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
   },
   banner: {
     borderRadius: 16,

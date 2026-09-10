@@ -1,0 +1,52 @@
+# Build context is the workspace root. Keep it small — everything here is
+# either regenerated inside the image or irrelevant to the build.
+
+# Dependencies (reinstalled from the lockfile inside the image)
+node_modules
+**/node_modules
+.local
+
+# Build output
+dist
+**/dist
+static-build
+**/static-build
+web-build
+**/web-build
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# Expo / Metro caches
+.expo
+**/.expo
+.metro-cache
+**/.metro-cache
+.metro-health-check*
+
+# VCS and tooling
+.git
+.gitignore
+.github
+.idea
+.vscode
+.agents
+.replit
+.replitignore
+.cache
+
+# Docker's own files
+compose.yaml
+docker-compose.yml
+.dockerignore
+**/Dockerfile
+
+# Misc
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.DS_Store
+**/.DS_Store
+.env
+.env.*
+!.env.example

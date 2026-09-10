@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "ASAP",
-    "slug": "mobile",
+    "slug": "asap-eats",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -14,11 +14,16 @@
       "backgroundColor": "#CC0001"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.yawmanuel.asapeats"
     },
-    "android": {},
+    "android": {
+      "package": "com.yawmanuel.asapeats"
+    },
     "web": {
-      "favicon": "./assets/images/icon.png"
+      "favicon": "./assets/images/icon.png",
+      "bundler": "metro",
+      "output": "single"
     },
     "plugins": [
       [
@@ -33,6 +38,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "53452dd3-a404-40ab-9839-562bcb31def1"
+      }
+    },
+    "owner": "yawmanuel"
   }
 }

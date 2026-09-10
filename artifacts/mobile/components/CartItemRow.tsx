@@ -5,6 +5,7 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useColors } from "@/hooks/useColors";
 import { CartItem, useCart } from "@/context/CartContext";
 import { IMAGE_MAP } from "@/constants/menu";
+import { formatCedis } from "@/utils/format";
 
 type Props = {
   cartItem: CartItem;
@@ -46,7 +47,7 @@ export function CartItemRow({ cartItem }: Props) {
           {cartItem.item.name}
         </Text>
         <Text style={[styles.price, { color: colors.primary }]}>
-          GH₵ {cartItem.item.price * cartItem.quantity}
+          {formatCedis(cartItem.item.price * cartItem.quantity)}
         </Text>
         <View style={styles.controls}>
           <Pressable

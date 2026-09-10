@@ -1,53 +1,38 @@
 import { Feather } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import {
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
-  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CartItemRow } from "@/components/CartItemRow";
 import { useColors } from "@/hooks/useColors";
 import { useCart } from "@/context/CartContext";
-import { useOrders } from "@/context/OrderContext";
-
-const DELIVERY_FEE = 10;
+import {
+  FREE_DELIVERY_THRESHOLD,
+  computeTotals,
+  deliveryFeeFor,
+} from "@/constants/pricing";
+import { formatCedis } from "@/utils/format";
 
 export default function CartScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { items, totalPrice, clearCart } = useCart();
-  const { placeOrder } = useOrders();
-  const [address, setAddress] = useState("");
-  const [placing, setPlacing] = useState(false);
+  const { items, subtotal, totalItems, clearCart } = useCart();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
   const tabBarHeight = Platform.OS === "web" ? 84 : 56 + insets.bottom;
 
-  const grandTotal = totalPrice + (items.length > 0 ? DELIVERY_FEE : 0);
-
-  const handleCheckout = async () => {
-    if (!address.trim()) {
-      Alert.alert("Enter Address", "Please enter your delivery address.");
-      return;
-    }
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setPlacing(true);
-    await new Promise((r) => setTimeout(r, 800));
-    placeOrder(items, grandTotal, address.trim());
-    clearCart();
-    setPlacing(false);
-    router.replace("/(tabs)/orders");
-  };
+  // Address, payment and promo now live on the checkout screen, so the cart
+  // shows the pre-promo total only.
+  const totals = computeTotals(subtotal);
+  const awayFromFreeDelivery = FREE_DELIVERY_THRESHOLD - subtotal;
 
   if (items.length === 0) {
     return (
@@ -76,7 +61,9 @@ export default function CartScreen() {
           onPress={() => router.push("/(tabs)")}
           style={[styles.browseBtn, { backgroundColor: colors.primary }]}
         >
-          <Text style={[styles.browseBtnText, { color: colors.primaryForeground }]}>
+          <Text
+            style={[styles.browseBtnText, { color: colors.primaryForeground }]}
+          >
             Browse Menu
           </Text>
         </Pressable>
@@ -85,53 +72,72 @@ export default function CartScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.screen, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
-          {
-            paddingTop: topPad + 8,
-            paddingBottom: tabBarHeight + 100,
-          },
+          { paddingTop: topPad + 8, paddingBottom: tabBarHeight + 110 },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.title, { color: colors.foreground }]}>
-          Your Cart
-          <Text style={[styles.count, { color: colors.mutedForeground }]}>
-            {"  "}{items.length} {items.length === 1 ? "item" : "items"}
+        <View style={styles.titleRow}>
+          <Text style={[styles.title, { color: colors.foreground }]}>
+            Your Cart
+            <Text style={[styles.count, { color: colors.mutedForeground }]}>
+              {"  "}
+              {totalItems} {totalItems === 1 ? "item" : "items"}
+            </Text>
           </Text>
-        </Text>
+          <Pressable
+            onPress={clearCart}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Clear cart"
+            style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+          >
+            <Text style={[styles.clear, { color: colors.destructive }]}>
+              Clear
+            </Text>
+          </Pressable>
+        </View>
 
         {items.map((ci) => (
           <CartItemRow key={ci.item.id} cartItem={ci} />
         ))}
 
-        {/* Delivery Address */}
-        <Text style={[styles.sectionLabel, { color: colors.foreground }]}>
-          Delivery Address
-        </Text>
-        <View
-          style={[
-            styles.inputWrap,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <Feather name="map-pin" size={16} color={colors.mutedForeground} />
-          <TextInput
-            value={address}
-            onChangeText={setAddress}
-            placeholder="Enter your delivery address..."
-            placeholderTextColor={colors.mutedForeground}
-            style={[styles.input, { color: colors.foreground }]}
-            multiline
-          />
-        </View>
+        {/* Nudge toward the free-delivery threshold */}
+        {awayFromFreeDelivery > 0 ? (
+          <View
+            style={[
+              styles.nudge,
+              {
+                backgroundColor: colors.secondary + "22",
+                borderColor: colors.secondary + "55",
+              },
+            ]}
+          >
+            <Feather name="truck" size={15} color={colors.foreground} />
+            <Text style={[styles.nudgeText, { color: colors.foreground }]}>
+              Add {formatCedis(awayFromFreeDelivery)} more for free delivery
+            </Text>
+          </View>
+        ) : (
+          <View
+            style={[
+              styles.nudge,
+              {
+                backgroundColor: colors.success + "1E",
+                borderColor: colors.success + "55",
+              },
+            ]}
+          >
+            <Feather name="check-circle" size={15} color={colors.success} />
+            <Text style={[styles.nudgeText, { color: colors.foreground }]}>
+              You&apos;ve unlocked free delivery
+            </Text>
+          </View>
+        )}
 
-        {/* Summary */}
         <View
           style={[
             styles.summary,
@@ -141,37 +147,60 @@ export default function CartScreen() {
           <Text style={[styles.summaryTitle, { color: colors.foreground }]}>
             Order Summary
           </Text>
+
           <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>
+            <Text
+              style={[styles.summaryLabel, { color: colors.mutedForeground }]}
+            >
               Subtotal
             </Text>
             <Text style={[styles.summaryValue, { color: colors.foreground }]}>
-              GH₵ {totalPrice}
+              {formatCedis(totals.subtotal)}
             </Text>
           </View>
+
           <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>
+            <Text
+              style={[styles.summaryLabel, { color: colors.mutedForeground }]}
+            >
               Delivery Fee
             </Text>
-            <Text style={[styles.summaryValue, { color: colors.foreground }]}>
-              GH₵ {DELIVERY_FEE}
+            <Text
+              style={[
+                styles.summaryValue,
+                {
+                  color:
+                    deliveryFeeFor(subtotal) === 0
+                      ? colors.success
+                      : colors.foreground,
+                },
+              ]}
+            >
+              {deliveryFeeFor(subtotal) === 0
+                ? "Free"
+                : formatCedis(totals.deliveryFee)}
             </Text>
           </View>
+
           <View
             style={[styles.summaryDivider, { backgroundColor: colors.border }]}
           />
+
           <View style={styles.summaryRow}>
             <Text style={[styles.totalLabel, { color: colors.foreground }]}>
               Total
             </Text>
             <Text style={[styles.totalValue, { color: colors.primary }]}>
-              GH₵ {grandTotal}
+              {formatCedis(totals.total)}
             </Text>
           </View>
+
+          <Text style={[styles.summaryNote, { color: colors.mutedForeground }]}>
+            Promo codes are applied at checkout.
+          </Text>
         </View>
       </ScrollView>
 
-      {/* Checkout Button */}
       <View
         style={[
           styles.checkoutBar,
@@ -179,26 +208,31 @@ export default function CartScreen() {
             backgroundColor: colors.background,
             borderTopColor: colors.border,
             bottom: tabBarHeight,
-            paddingBottom: 12,
           },
         ]}
       >
         <Pressable
-          onPress={handleCheckout}
-          disabled={placing}
+          onPress={() => router.push("/checkout")}
+          accessibilityRole="button"
           style={({ pressed }) => [
             styles.checkoutBtn,
             { backgroundColor: colors.primary },
-            (pressed || placing) && { opacity: 0.8 },
+            pressed && { opacity: 0.8 },
           ]}
         >
-          <Text style={styles.checkoutText}>
-            {placing ? "Placing Order..." : `Place Order · GH₵ ${grandTotal}`}
+          <Text
+            style={[styles.checkoutText, { color: colors.primaryForeground }]}
+          >
+            Checkout · {formatCedis(totals.total)}
           </Text>
-          {!placing && <Feather name="arrow-right" size={20} color="#fff" />}
+          <Feather
+            name="arrow-right"
+            size={20}
+            color={colors.primaryForeground}
+          />
         </Pressable>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -209,35 +243,39 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 16,
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
   title: {
     fontSize: 24,
     fontFamily: "Inter_700Bold",
-    marginBottom: 20,
   },
   count: {
     fontSize: 15,
     fontFamily: "Inter_400Regular",
   },
-  sectionLabel: {
-    fontSize: 16,
+  clear: {
+    fontSize: 14,
     fontFamily: "Inter_600SemiBold",
-    marginBottom: 10,
-    marginTop: 8,
   },
-  inputWrap: {
+  nudge: {
     flexDirection: "row",
-    gap: 10,
-    padding: 12,
+    alignItems: "center",
+    gap: 9,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
     borderRadius: 12,
     borderWidth: 1,
-    alignItems: "flex-start",
+    marginTop: 4,
     marginBottom: 18,
   },
-  input: {
+  nudgeText: {
     flex: 1,
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    minHeight: 40,
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
   },
   summary: {
     borderRadius: 14,
@@ -266,6 +304,11 @@ const styles = StyleSheet.create({
     height: 1,
     marginVertical: 4,
   },
+  summaryNote: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
+  },
   totalLabel: {
     fontSize: 16,
     fontFamily: "Inter_700Bold",
@@ -276,11 +319,11 @@ const styles = StyleSheet.create({
   },
   checkoutBar: {
     position: "absolute",
-    bottom: 0,
     left: 0,
     right: 0,
     paddingHorizontal: 16,
     paddingTop: 12,
+    paddingBottom: 12,
     borderTopWidth: 1,
   },
   checkoutBtn: {
@@ -294,7 +337,6 @@ const styles = StyleSheet.create({
   checkoutText: {
     fontSize: 16,
     fontFamily: "Inter_700Bold",
-    color: "#fff",
   },
   empty: {
     flex: 1,

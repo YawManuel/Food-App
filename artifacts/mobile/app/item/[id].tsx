@@ -15,16 +15,17 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { IMAGE_MAP, MENU_ITEMS } from "@/constants/menu";
 import { useCart } from "@/context/CartContext";
+import { formatCedis } from "@/utils/format";
 
 export default function ItemScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { addItem, items } = useCart();
+  const { addItem, quantityOf } = useCart();
   const [qty, setQty] = useState(1);
 
   const item = MENU_ITEMS.find((m) => m.id === id);
-  const cartEntry = items.find((c) => c.item.id === id);
+  const inCart = quantityOf(id);
   const img = item ? IMAGE_MAP[item.imageName] : null;
 
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -39,7 +40,7 @@ export default function ItemScreen() {
 
   const handleAdd = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    for (let i = 0; i < qty; i++) addItem(item);
+    addItem(item, qty);
     router.back();
   };
 
@@ -137,7 +138,7 @@ export default function ItemScreen() {
             </Pressable>
           </View>
 
-          {cartEntry && (
+          {inCart > 0 && (
             <View
               style={[
                 styles.inCartBadge,
@@ -146,7 +147,7 @@ export default function ItemScreen() {
             >
               <Feather name="check-circle" size={14} color={colors.success} />
               <Text style={[styles.inCartText, { color: colors.success }]}>
-                {cartEntry.quantity} already in cart
+                {inCart} already in cart
               </Text>
             </View>
           )}
@@ -169,7 +170,7 @@ export default function ItemScreen() {
             Total
           </Text>
           <Text style={[styles.addBarPrice, { color: colors.primary }]}>
-            GH₵ {item.price * qty}
+            {formatCedis(item.price * qty)}
           </Text>
         </View>
         <Pressable

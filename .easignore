@@ -1,0 +1,43 @@
+# Files excluded from the archive uploaded to EAS Build.
+# Keeps the upload small — the build server reinstalls from the lockfile anyway.
+
+# Dependencies
+node_modules
+**/node_modules
+
+# Replit agent/skill payload — very large and irrelevant to a native build
+.local
+
+# Build output
+dist
+**/dist
+static-build
+**/static-build
+web-build
+**/web-build
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# Caches
+.expo
+**/.expo
+.metro-cache
+**/.metro-cache
+.cache
+
+# The web container — not part of a native build
+Dockerfile
+**/Dockerfile
+compose.yaml
+.dockerignore
+artifacts/mobile/docker
+
+# Sibling artifacts the mobile app does not depend on
+artifacts/api-server
+artifacts/mockup-sandbox
+
+# Misc
+.git
+*.log
+.DS_Store
+**/.DS_Store

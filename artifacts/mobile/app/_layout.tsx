@@ -7,6 +7,7 @@ import {
 } from "@expo-google-fonts/inter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -16,23 +17,37 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CartProvider } from "@/context/CartContext";
 import { OrderProvider } from "@/context/OrderContext";
+import { ThemeProvider, useTheme } from "@/context/ThemeContext";
+import { UserProvider } from "@/context/UserContext";
+import { useColors } from "@/hooks/useColors";
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
+  const colors = useColors();
+  const { scheme } = useTheme();
+
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="item/[id]"
-        options={{
+    <>
+      <StatusBar style={scheme === "dark" ? "light" : "dark"} />
+      <Stack
+        screenOptions={{
           headerShown: false,
-          presentation: "card",
+          contentStyle: { backgroundColor: colors.background },
         }}
-      />
-    </Stack>
+      >
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="item/[id]" options={{ presentation: "card" }} />
+        <Stack.Screen name="checkout" />
+        <Stack.Screen name="order/confirmed" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="order/[id]" />
+        <Stack.Screen name="profile/edit" />
+        <Stack.Screen name="profile/addresses" />
+        <Stack.Screen name="profile/payment" />
+      </Stack>
+    </>
   );
 }
 
@@ -54,19 +69,24 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <CartProvider>
-            <OrderProvider>
-              <GestureHandlerRootView style={{ flex: 1 }}>
-                <KeyboardProvider>
-                  <RootLayoutNav />
-                </KeyboardProvider>
-              </GestureHandlerRootView>
-            </OrderProvider>
-          </CartProvider>
-        </QueryClientProvider>
-      </ErrorBoundary>
+      {/* ThemeProvider wraps ErrorBoundary so the crash screen is themed too. */}
+      <ThemeProvider>
+        <ErrorBoundary>
+          <QueryClientProvider client={queryClient}>
+            <UserProvider>
+              <CartProvider>
+                <OrderProvider>
+                  <GestureHandlerRootView style={{ flex: 1 }}>
+                    <KeyboardProvider>
+                      <RootLayoutNav />
+                    </KeyboardProvider>
+                  </GestureHandlerRootView>
+                </OrderProvider>
+              </CartProvider>
+            </UserProvider>
+          </QueryClientProvider>
+        </ErrorBoundary>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

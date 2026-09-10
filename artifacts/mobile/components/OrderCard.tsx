@@ -1,150 +1,159 @@
-import { MaterialIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useColors } from "@/hooks/useColors";
-import { Order, OrderStatus } from "@/context/OrderContext";
+import {
+  STATUS_LABELS,
+  STATUS_STEPS,
+  type Order,
+} from "@/context/OrderContext";
+import { formatCedis, formatEta, formatOrderDate } from "@/utils/format";
 
 type Props = {
   order: Order;
+  onPress?: () => void;
 };
 
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  placed: "Order Placed",
-  confirmed: "Confirmed",
-  preparing: "Preparing",
-  on_the_way: "On the Way",
-  delivered: "Delivered",
-};
-
-const STATUS_STEPS: OrderStatus[] = [
-  "placed",
-  "confirmed",
-  "preparing",
-  "on_the_way",
-  "delivered",
-];
-
-export function OrderCard({ order }: Props) {
+export function OrderCard({ order, onPress }: Props) {
   const colors = useColors();
-  const stepIndex = STATUS_STEPS.indexOf(order.status);
-  const isDelivered = order.status === "delivered";
 
-  const statusColor = isDelivered ? colors.success : colors.secondary;
+  const isDelivered = order.status === "delivered";
+  const isCancelled = order.status === "cancelled";
+  const isFinished = isDelivered || isCancelled;
+
+  const stepIndex = STATUS_STEPS.indexOf(order.status);
+  const statusColor = isCancelled
+    ? colors.destructive
+    : isDelivered
+      ? colors.success
+      : colors.secondary;
+
+  const totalUnits = order.items.reduce((sum, line) => sum + line.quantity, 0);
 
   return (
-    <View
-      style={[
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole={onPress ? "button" : undefined}
+      accessibilityLabel={`Order ${order.code}, ${STATUS_LABELS[order.status]}`}
+      style={({ pressed }) => [
         styles.card,
         { backgroundColor: colors.card, borderColor: colors.border },
+        pressed && onPress && { opacity: 0.9, transform: [{ scale: 0.995 }] },
       ]}
     >
       <View style={styles.header}>
-        <View>
-          <Text style={[styles.orderId, { color: colors.mutedForeground }]}>
-            Order #{order.id.slice(-6).toUpperCase()}
+        <View style={styles.headerText}>
+          <Text style={[styles.orderId, { color: colors.foreground }]}>
+            {order.code}
           </Text>
           <Text style={[styles.date, { color: colors.mutedForeground }]}>
-            {new Date(order.placedAt).toLocaleDateString("en-GH", {
-              day: "numeric",
-              month: "short",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            {formatOrderDate(order.placedAt)}
           </Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: statusColor + "22" }]}>
+        <View
+          style={[styles.statusBadge, { backgroundColor: statusColor + "22" }]}
+        >
           <Text style={[styles.statusText, { color: statusColor }]}>
             {STATUS_LABELS[order.status]}
           </Text>
         </View>
       </View>
 
-      {!isDelivered && (
-        <View style={styles.tracker}>
-          {STATUS_STEPS.map((step, i) => (
-            <React.Fragment key={step}>
-              <View
-                style={[
-                  styles.dot,
-                  {
-                    backgroundColor:
-                      i <= stepIndex ? colors.primary : colors.border,
-                  },
-                ]}
-              />
-              {i < STATUS_STEPS.length - 1 && (
+      {/* Progress rail — pointless once the order has reached a terminal state */}
+      {!isFinished && (
+        <>
+          <View style={styles.tracker}>
+            {STATUS_STEPS.map((step, i) => (
+              <React.Fragment key={step}>
                 <View
                   style={[
-                    styles.line,
+                    styles.dot,
                     {
                       backgroundColor:
-                        i < stepIndex ? colors.primary : colors.border,
+                        i <= stepIndex ? colors.primary : colors.border,
                     },
                   ]}
                 />
-              )}
-            </React.Fragment>
-          ))}
-        </View>
+                {i < STATUS_STEPS.length - 1 && (
+                  <View
+                    style={[
+                      styles.line,
+                      {
+                        backgroundColor:
+                          i < stepIndex ? colors.primary : colors.border,
+                      },
+                    ]}
+                  />
+                )}
+              </React.Fragment>
+            ))}
+          </View>
+          <Text style={[styles.eta, { color: colors.primary }]}>
+            {formatEta(order.minutesRemaining)}
+          </Text>
+        </>
       )}
 
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
       <View style={styles.items}>
-        {order.items.slice(0, 3).map((ci) => (
+        {order.items.slice(0, 3).map((line) => (
           <Text
-            key={ci.item.id}
+            key={line.item.id}
             style={[styles.itemLine, { color: colors.foreground }]}
+            numberOfLines={1}
           >
-            {ci.quantity}× {ci.item.name}
+            {line.quantity}× {line.item.name}
           </Text>
         ))}
         {order.items.length > 3 && (
-          <Text style={[styles.itemLine, { color: colors.mutedForeground }]}>
+          <Text style={[styles.more, { color: colors.mutedForeground }]}>
             +{order.items.length - 3} more
           </Text>
         )}
       </View>
 
       <View style={styles.footer}>
-        <View style={styles.addressRow}>
-          <MaterialIcons name="location-on" size={14} color={colors.mutedForeground} />
-          <Text
-            style={[styles.address, { color: colors.mutedForeground }]}
-            numberOfLines={1}
-          >
-            {order.address}
-          </Text>
-        </View>
-        <Text style={[styles.total, { color: colors.primary }]}>
-          GH₵ {order.totalPrice}
+        <Text style={[styles.count, { color: colors.mutedForeground }]}>
+          {totalUnits} {totalUnits === 1 ? "item" : "items"}
         </Text>
+        <View style={styles.footerRight}>
+          <Text style={[styles.total, { color: colors.foreground }]}>
+            {formatCedis(order.total)}
+          </Text>
+          {onPress && (
+            <Feather
+              name="chevron-right"
+              size={17}
+              color={colors.mutedForeground}
+            />
+          )}
+        </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    padding: 14,
+    padding: 16,
     marginBottom: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 1,
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 12,
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  headerText: {
+    flex: 1,
   },
   orderId: {
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
   },
   date: {
     fontSize: 12,
@@ -153,54 +162,61 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
+    paddingVertical: 5,
+    borderRadius: 12,
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontFamily: "Inter_600SemiBold",
   },
   tracker: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginTop: 16,
   },
   dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
   },
   line: {
     flex: 1,
     height: 2,
   },
+  eta: {
+    fontSize: 12.5,
+    fontFamily: "Inter_600SemiBold",
+    marginTop: 8,
+  },
   divider: {
     height: 1,
-    marginBottom: 10,
+    marginVertical: 14,
   },
   items: {
-    gap: 3,
-    marginBottom: 10,
+    gap: 4,
   },
   itemLine: {
-    fontSize: 13,
+    fontSize: 13.5,
+    fontFamily: "Inter_500Medium",
+  },
+  more: {
+    fontSize: 12.5,
     fontFamily: "Inter_400Regular",
   },
   footer: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 14,
   },
-  addressRow: {
+  footerRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
-    flex: 1,
+    gap: 4,
   },
-  address: {
-    fontSize: 12,
+  count: {
+    fontSize: 12.5,
     fontFamily: "Inter_400Regular",
-    flex: 1,
   },
   total: {
     fontSize: 16,

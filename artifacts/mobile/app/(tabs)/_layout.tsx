@@ -6,13 +6,7 @@ import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import {
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-  useColorScheme,
-} from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 
 // expo-router/unstable-native-tabs requires a custom native build and does not
 // work inside Expo Go. Detect Expo Go so we can fall back to the classic layout.
@@ -20,15 +14,21 @@ const isExpoGo = Constants.appOwnership === "expo";
 
 import { useColors } from "@/hooks/useColors";
 import { useCart } from "@/context/CartContext";
+import { useTheme } from "@/context/ThemeContext";
 
 function CartTabIcon({ color }: { color: string }) {
+  const colors = useColors();
   const { totalItems } = useCart();
   return (
     <View>
       <Feather name="shopping-bag" size={22} color={color} />
       {totalItems > 0 && (
-        <View style={styles.cartBadge}>
-          <Text style={styles.cartBadgeText}>{totalItems > 9 ? "9+" : totalItems}</Text>
+        <View style={[styles.cartBadge, { backgroundColor: colors.primary }]}>
+          <Text
+            style={[styles.cartBadgeText, { color: colors.primaryForeground }]}
+          >
+            {totalItems > 9 ? "9+" : totalItems}
+          </Text>
         </View>
       )}
     </View>
@@ -60,8 +60,8 @@ function NativeTabLayout() {
 
 function ClassicTabLayout() {
   const colors = useColors();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { scheme } = useTheme();
+  const isDark = scheme === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
 
@@ -163,14 +163,12 @@ const styles = StyleSheet.create({
     minWidth: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: "#CC0001",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 3,
   },
   cartBadgeText: {
     fontSize: 9,
-    color: "#fff",
     fontWeight: "700",
   },
 });
